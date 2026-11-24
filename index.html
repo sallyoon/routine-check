@@ -134,7 +134,8 @@ const R=[mk('r-lee-desk','lsh','06:20 출근 준비 끝내고 책상 앉기',5,'
 let db=null,checks={},data=null,busy=false,baseline='',photos={},previews={},requestId='',timer,tab='check',session={},statusMonth='',statusDate='',statusFilter='';
 try{session=JSON.parse(localStorage.getItem('routine.session')||'{}');}catch(e){}
 function persist(){try{localStorage.setItem('routine.session',JSON.stringify(session));}catch(e){}}
-const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const TZ={yjs:'Europe/Copenhagen'};
+const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:TZ[session.id]||'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const dates_=(a,b)=>{const r=[];for(let d=new Date(a+'T00:00:00Z');d.toISOString().slice(0,10)<=b;d.setUTCDate(d.getUTCDate()+1))r.push(d.toISOString().slice(0,10));return r;};
 const week_=date=>{const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));const start=d.toISOString().slice(0,10);d.setUTCDate(d.getUTCDate()+6);return {start,end:d.toISOString().slice(0,10)};};
 const phase_=d=>d>=CFG.scoringStart?'official':d>=CFG.practiceStart&&d<=CFG.practiceEnd?'practice':'preparation';
@@ -207,8 +208,8 @@ $('monthPrev').onclick=()=>moveMonth(-1);$('monthNext').onclick=()=>moveMonth(1)
 $('checkTab').onclick=()=>showTab('check');$('statusTab').onclick=()=>showTab('status');$('weekSelect').onchange=()=>{moveWeek($('weekSelect').value);$('weekSelect').value=data.week.start;};$('prev').onclick=()=>moveWeek(data.weeks[data.weeks.findIndex(w=>w.start===data.week.start)-1].start);$('next').onclick=()=>moveWeek(data.weeks[data.weeks.findIndex(w=>w.start===data.week.start)+1].start);
 document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{if($('mode').value===b.dataset.v)return;$('mode').value=b.dataset.v;$('mode').onchange();});
 $('mode').onchange=()=>{requestId='';renderChecks(new Set([...$('checks').querySelectorAll('.check input:checked')].map(i=>i.value)));};
-$('loginForm').onsubmit=e=>{e.preventDefault();run(async()=>{const pid=$('person').value;await login(pid,$('password').value);$('password').value='';apply(pid,data.date);});};
-$('logout').onclick=async()=>{if(dirty()&&!await ask('저장하지 않은 내용을 취소하고 로그아웃할까요?'))return;session={};persist();apply('',data.date);};
+$('loginForm').onsubmit=e=>{e.preventDefault();run(async()=>{const pid=$('person').value;await login(pid,$('password').value);$('password').value='';apply(pid,today());});};
+$('logout').onclick=async()=>{if(dirty()&&!await ask('저장하지 않은 내용을 취소하고 로그아웃할까요?'))return;session={};persist();apply('',today());};
 $('form').onsubmit=e=>{e.preventDefault();if(!editable()){message('오늘 날짜만 인증할 수 있습니다.',true);return;}const checked=[...$('checks').querySelectorAll('.check input:checked')].map(i=>i.value),sel={};for(const id of checked){if(photos[id])sel[id]=photos[id];else if(!data.history.some(h=>h.date===data.date&&h.routine===id&&h.photo)){message('완료한 루틴의 사진을 등록하세요.',true);return;}}const mode=data.needsMode?$('mode').value:'all';run(async()=>{await save(data.date,mode,checked,sel);setDate(data.date);message('저장했습니다.');});};
 setInterval(()=>{if(data&&data.today!==today()){data.today=today();controls();renderCalendar();if(data.date!==today()){$('readOnly').hidden=false;$('readOnly').textContent='인증 마감';}}},1000);
 (async()=>{const wait=setTimeout(()=>{if(!data)$('loading').textContent='데이터에 연결하지 못했습니다. 인터넷 연결을 확인하고 새로고침해 주세요.';},10000);
